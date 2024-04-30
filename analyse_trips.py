@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import geopandas as gpd
 import shapely as shp
@@ -42,6 +43,7 @@ def add_departement_info(
     gdf: gpd.GeoDataFrame, departements_gdf: gpd.GeoDataFrame
 ) -> gpd.GeoDataFrame:
     joined = gpd.sjoin(gdf, departements_gdf, how="inner", predicate="intersects")
+    gdf["departement"] = joined["nom"]
     return gdf.copy()
 
 
@@ -68,12 +70,28 @@ def clean_mapstr_data(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     gdf = add_departement_info(gdf)
 
 
-def mapstr_stats(gpd: gpd.GeoDataFrame) -> str:
+def mapstr_stats(gdf: gpd.GeoDataFrame) -> str:
+    visited_departements = set(gdf["departement"])
+    try:
+        visited_departements.remove(np.nan)
+    except KeyError:
+        pass
+    visited_countries = set(gdf["country"])
+    try:
+        visited_countries.remove(np.nan)
+    except KeyError:
+        pass
+    visited_continents = set(gdf["continent"])
+    try:
+        visited_continents.remove(np.nan)
+    except KeyError:
+        pass
+
     stats = ""
-    stats += f"Number of places visited: {len(gpd)}\n"
-    stats += f"Numer of countries visited: \n"
-    stats += f"Number of continents visited: \n"
-    stats += f"Number of French départements visited \n"
-    stats += f"Number of US states visited \n"
+    stats += f"Number of places visited: {len(gdf)}\n"
+    stats += f"Number of countries visited: {len(visited_countries)}\n"
+    stats += f"Number of continents visited: {len(visited_countries)}\n"
+    stats += f"Number of French départements visited: {len(visited_departements)}\n"
+    stats += f"Number of US states visited: \n"
 
     return stats

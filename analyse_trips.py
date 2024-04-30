@@ -117,11 +117,11 @@ def mapstr_stats(gdf: gpd.GeoDataFrame) -> str:
     stats = ""
     stats += f"Number of places visited: {len(gdf)}\n"
     stats += f"Number of countries visited: {len(visited_countries)}\n"
-    stats += f"Number of continents visited: {len(visited_countries)}\n"
+    stats += f"Number of continents visited: {len(visited_continents)}\n"
     stats += f"Number of French départements visited: {len(visited_departements)}\n"
     stats += f"Number of US states visited: {len(visited_us_states)}\n\n"
-    stats += f"Visited countries: {visited_countries}\n"
-    stats += f"Visited US states: {visited_us_states}\n"
+    stats += f"Visited countries: {", ".join(i for i in visited_countries)}\n"
+    stats += f"Visited US states: {", ".join(i for i in visited_us_states)}\n"
 
     return stats
 

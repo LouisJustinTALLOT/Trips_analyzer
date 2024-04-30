@@ -51,10 +51,18 @@ def add_world_info(
     gdf: gpd.GeoDataFrame, world_countries_gdf: gpd.GeoDataFrame
 ) -> gpd.GeoDataFrame:
     gdf = gdf.copy()
-    joined = gpd.sjoin(gdf, world_countries_gdf, how="inner", predicate="intersects")
-    gdf["country"] = joined["name_right"]
-    gdf["country_FR"] = joined["french_short"]
-    gdf["continent"] = joined["continent"]
+
+    tree = shp.STRtree(world_countries_gdf["geometry"])
+    nearest_countries = []
+    for point in gdf["geometry"]:
+        nearest_geom = tree.nearest(point)
+        nearest_country = world_countries_gdf.loc[nearest_geom]
+        nearest_countries.append(nearest_country)
+    countries = gpd.GeoDataFrame(nearest_countries, index=gdf.index)
+
+    gdf["country"] = countries["name"]
+    gdf["country_FR"] = countries["french_short"]
+    gdf["continent"] = countries["continent"]
     return gdf.copy()
 
 
@@ -64,10 +72,12 @@ def clean_mapstr_data(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     gdf.drop(columns="icon", inplace=True)
     gdf_tags, tag_color_mapping = unpack_tag(gdf["tags"])
     gdf.join(gdf_tags)
-    print(tag_color_mapping)
 
-    gdf = add_world_info(gdf)
-    gdf = add_departement_info(gdf)
+
+    gdf = add_world_info(gdf, load_data("data/world-administrative-boundaries.geojson"))
+    gdf = add_departement_info(gdf, load_data("data/french-departements.geojson"))
+
+    return gdf.copy()  # , tag_color_mapping
 
 
 def mapstr_stats(gdf: gpd.GeoDataFrame) -> str:
@@ -76,7 +86,7 @@ def mapstr_stats(gdf: gpd.GeoDataFrame) -> str:
         visited_departements.remove(np.nan)
     except KeyError:
         pass
-    visited_countries = set(gdf["country"])
+    visited_countries = set(gdf["country_FR"])
     try:
         visited_countries.remove(np.nan)
     except KeyError:
@@ -92,6 +102,13 @@ def mapstr_stats(gdf: gpd.GeoDataFrame) -> str:
     stats += f"Number of countries visited: {len(visited_countries)}\n"
     stats += f"Number of continents visited: {len(visited_countries)}\n"
     stats += f"Number of French départements visited: {len(visited_departements)}\n"
-    stats += f"Number of US states visited: \n"
+    stats += f"Number of US states visited: \n\n"
+    stats += f"Visited countries: {visited_countries}\n"
 
     return stats
+
+
+if __name__ == "__main__":
+    gdf = load_data("mapstr_2024_04_24.geojson")
+    gdf = clean_mapstr_data(gdf)
+    print(mapstr_stats(gdf))

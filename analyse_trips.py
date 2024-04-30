@@ -47,6 +47,19 @@ def add_departement_info(
     return gdf.copy()
 
 
+def add_US_states_info(
+    gdf: gpd.GeoDataFrame, us_states_gdf: gpd.GeoDataFrame
+) -> gpd.GeoDataFrame:
+    gdf_buff: gpd.GeoDataFrame = gdf.copy().to_crs("EPSG:4087")
+    us_states_gdf = us_states_gdf.to_crs("EPSG:4087")
+
+    gdf_buff["geometry"] = gdf_buff.buffer(1000)
+    us_state = gpd.sjoin(gdf_buff, us_states_gdf, how="inner", predicate="intersects")
+
+    gdf["US_state"] = us_state["NAME"]
+    return gdf.copy()
+
+
 def add_world_info(
     gdf: gpd.GeoDataFrame, world_countries_gdf: gpd.GeoDataFrame
 ) -> gpd.GeoDataFrame:
@@ -73,10 +86,9 @@ def clean_mapstr_data(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     gdf_tags, tag_color_mapping = unpack_tag(gdf["tags"])
     gdf.join(gdf_tags)
 
-
     gdf = add_world_info(gdf, load_data("data/world-administrative-boundaries.geojson"))
     gdf = add_departement_info(gdf, load_data("data/french-departements.geojson"))
-
+    gdf = add_US_states_info(gdf, load_data("data/us_states.geojson"))
     return gdf.copy()  # , tag_color_mapping
 
 
@@ -96,14 +108,20 @@ def mapstr_stats(gdf: gpd.GeoDataFrame) -> str:
         visited_continents.remove(np.nan)
     except KeyError:
         pass
+    visited_us_states = set(gdf["US_state"])
+    try:
+        visited_us_states.remove(np.nan)
+    except KeyError:
+        pass
 
     stats = ""
     stats += f"Number of places visited: {len(gdf)}\n"
     stats += f"Number of countries visited: {len(visited_countries)}\n"
     stats += f"Number of continents visited: {len(visited_countries)}\n"
     stats += f"Number of French départements visited: {len(visited_departements)}\n"
-    stats += f"Number of US states visited: \n\n"
+    stats += f"Number of US states visited: {len(visited_us_states)}\n\n"
     stats += f"Visited countries: {visited_countries}\n"
+    stats += f"Visited US states: {visited_us_states}\n"
 
     return stats
 

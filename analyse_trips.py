@@ -59,6 +59,17 @@ def add_US_states_info(
     gdf["US_state"] = us_state["NAME"]
     return gdf.copy()
 
+def add_german_lander_info(
+    gdf: gpd.GeoDataFrame, lander_gdf: gpd.GeoDataFrame
+) -> gpd.GeoDataFrame:
+    gdf_buff: gpd.GeoDataFrame = gdf.copy().to_crs("EPSG:4087")
+    lander_gdf = lander_gdf.to_crs("EPSG:4087")
+    
+    gdf_buff["geometry"] = gdf_buff.buffer(10)
+    lander = gpd.sjoin(gdf_buff, lander_gdf, how="inner", predicate="intersects")
+    gdf["DE_lander"] = lander["lander_name"]
+    return gdf.copy()
+
 
 def add_world_info(
     gdf: gpd.GeoDataFrame, world_countries_gdf: gpd.GeoDataFrame
@@ -89,6 +100,7 @@ def clean_mapstr_data(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     gdf = add_world_info(gdf, load_data("data/world-administrative-boundaries.geojson"))
     gdf = add_departement_info(gdf, load_data("data/french-departements.geojson"))
     gdf = add_US_states_info(gdf, load_data("data/us_states.geojson"))
+    gdf = add_german_lander_info(gdf, load_data("data/german_lander.geojson"))
     return gdf.copy()  # , tag_color_mapping
 
 
@@ -113,15 +125,24 @@ def mapstr_stats(gdf: gpd.GeoDataFrame) -> str:
         visited_us_states.remove(np.nan)
     except KeyError:
         pass
+    visited_german_lander = set(gdf["DE_lander"])
+    try:
+        visited_german_lander.remove(np.nan)
+    except KeyError:
+        pass
 
     stats = ""
     stats += f"Number of places visited: {len(gdf)}\n"
     stats += f"Number of countries visited: {len(visited_countries)}\n"
     stats += f"Number of continents visited: {len(visited_continents)}\n"
     stats += f"Number of French départements visited: {len(visited_departements)}\n"
+    stats += f"Number of German Länder visited: {len(visited_german_lander)}\n"
     stats += f"Number of US states visited: {len(visited_us_states)}\n\n"
-    stats += f"Visited countries: {", ".join(i for i in visited_countries)}\n"
-    stats += f"Visited US states: {", ".join(i for i in visited_us_states)}\n"
+    stats += f"Visited countries: {", ".join(i for i in sorted(visited_countries))}\n"
+    stats += f"Visited continents: {", ".join(i for i in sorted(visited_continents))}\n"
+    stats += f"Visited French départements: {", ".join(i for i in sorted(visited_departements))}\n"
+    stats += f"Visited German Länder: {", ".join(i for i in sorted(visited_german_lander))}\n"
+    stats += f"Visited US states: {", ".join(i for i in sorted(visited_us_states))}\n"
 
     return stats
 

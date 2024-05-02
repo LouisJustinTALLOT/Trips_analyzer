@@ -1,11 +1,12 @@
+import json
+
+import folium
+import geopandas as gpd
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import geopandas as gpd
 import shapely as shp
-import matplotlib.pyplot as plt
-import folium
 from folium.plugins import HeatMap
-import json
 
 FRENCH_DEPARTEMENTS = "data/french-departements.geojson"
 WORLD_COUNTRIES = "data/world-administrative-boundaries.geojson"
@@ -42,8 +43,8 @@ def unpack_tag(tag_series: str) -> pd.DataFrame:
             tag_names.append(x["name"])
             tag_colors.append(x["color"])
             tag_color_mapping[x["name"]] = x["color"]
-        names.append(tag_names)
-        colors.append(tag_colors)
+        names.append(tuple(tag_names))
+        colors.append(tuple(tag_colors))
 
     return (
         pd.DataFrame({"type": pd.Series(names), "color": pd.Series(colors)}),
@@ -107,7 +108,7 @@ def clean_mapstr_data(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     gdf.drop(columns="userComment", inplace=True)
     gdf.drop(columns="icon", inplace=True)
     gdf_tags, tag_color_mapping = unpack_tag(gdf["tags"])
-    gdf.join(gdf_tags)
+    gdf = gdf.join(gdf_tags)
 
     gdf = add_world_info(gdf, load_data("data/world-administrative-boundaries.geojson"))
     gdf = add_departement_info(gdf, load_data("data/french-departements.geojson"))

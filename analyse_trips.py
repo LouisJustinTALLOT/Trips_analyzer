@@ -3,6 +3,8 @@ import pandas as pd
 import geopandas as gpd
 import shapely as shp
 import matplotlib.pyplot as plt
+import folium
+from folium.plugins import HeatMap
 import json
 
 FRENCH_DEPARTEMENTS = "data/french-departements.geojson"
@@ -16,6 +18,16 @@ def load_data(data_location: str) -> gpd.GeoDataFrame:
 def plot_interactive_map(gdf: gpd.GeoDataFrame, show: bool = False):
     return gdf.explore(legend=False)
 
+def plot_heat_map(gdf: gpd.GeoDataFrame, show: bool = False):
+    my_map = folium.Map(location=[15, -20], tiles="Cartodb dark_matter", zoom_start=2)
+
+    heat_data = [[point.xy[1][0], point.xy[0][0]] for point in gdf.to_crs(crs=4326).geometry]
+
+    HeatMap(heat_data, radius=15).add_to(my_map)
+
+    if show:
+        my_map.show_in_browser()
+    return my_map
 
 def unpack_tag(tag_series: str) -> pd.DataFrame:
     list_tags = [json.loads(tag) for tag in tag_series]
@@ -151,3 +163,4 @@ if __name__ == "__main__":
     gdf = load_data("mapstr_2024_04_24.geojson")
     gdf = clean_mapstr_data(gdf)
     print(mapstr_stats(gdf))
+    plot_heat_map(gdf, show=True)
